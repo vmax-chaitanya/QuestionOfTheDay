@@ -1,0 +1,34 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&display=swap');
+
+@import url("https://cdn.jsdelivr.net/npm/@flaticon/flaticon-uicons@3.3.1/css/all/all.min.css");
+:root {
+  --bw-primary: #3b82f6;
+  --bw-body-color: #4b5563;
+}
+body {
+  --bs-body-font-family:"Figtree", sans-serif;
+  --bs-body-color:var(--bw-body-color);
+ 
+}
+.table{
+  --bs-table-color:var(--bw-body-color);
+}
+
+.btn-outline-default{
+  --bs-btn-border-color:#d1d5db;
+  --bs-btn-hover-border-color:#d1d5db;
+
+}
+.pagination{
+  --bs-pagination-color:var(--bw-body-color);
+  --bs-pagination-active-border-color:var(--bw-primary);
+  --bs-pagination-active-bg:var(--bw-primary);
+}
+
+
+
+
+ /* *{
+  box-shadow: 0px 0px 0px 1px red;
+ } */
