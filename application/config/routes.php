@@ -80,3 +80,5 @@ $route['question/(:num)'] = 'home/question/$1';
 $route['submit-answer'] = 'home/submit_answer';
 // Handle like/dislike for comments (AJAX)
 $route['toggle-comment-like'] = 'home/toggle_comment_like';
+// Handle loading more comments (AJAX)
+$route['load-more-comments'] = 'home/load_more_comments';

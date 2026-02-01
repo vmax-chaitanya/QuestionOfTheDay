@@ -125,7 +125,7 @@ class QuestionOfTheDayController extends CI_Controller {
 		$this->form_validation->set_rules('option_3', 'Option 3', 'trim');
 		$this->form_validation->set_rules('option_4', 'Option 4', 'trim');
 		$this->form_validation->set_rules('correct_answer', 'Correct Answer', 'required|in_list[1,2,3,4]');
-		$this->form_validation->set_rules('explanation', 'Explanation', 'required');
+		$this->form_validation->set_rules('explanation', 'Explanation', 'trim');
 		$this->form_validation->set_rules('video_type', 'Video Type', 'in_list[upload,youtube,none]');
 		$this->form_validation->set_rules('youtube_link', 'YouTube Link', 'trim|callback_validate_youtube_link');
 		

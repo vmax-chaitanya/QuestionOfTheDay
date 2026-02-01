@@ -17,6 +17,14 @@
                             <div class="q-day-hd">
                                 <?php if (!empty($today_question)): ?>
                                     <span class="p-date">
+                                        <i class="fa-regular fa-comments"></i>
+                                        <?php
+                                            $answers_count = isset($today_question['answers_count']) ? (int)$today_question['answers_count'] : 0;
+                                            echo str_pad($answers_count, 2, '0', STR_PAD_LEFT);
+                                        ?>
+                                        Answers
+                                    </span>
+                                    <span class="p-date">
                                         <i class="fa-solid fa-calendar-days"></i>
                                         <?php echo date('d-m-Y', strtotime($today_question['question_date'])); ?>
                                     </span>
@@ -265,8 +273,19 @@
                         <section class="comments-list">
                             <h5>Recent Comments</h5>
                             <?php if (!empty($recent_comments)): ?>
+                                <?php 
+                                    $displayed_comments_count = 0;
+                                    $question_id = !empty($today_question) ? (int)$today_question['id'] : 0;
+                                    $total_loaded_comments = count($recent_comments);
+                                ?>
                                 <?php foreach ($recent_comments as $comment): ?>
                                     <?php
+                                        // Skip comments without explanations
+                                        if (empty($comment['user_explanation']) || trim($comment['user_explanation']) === '') {
+                                            continue;
+                                        }
+                                        $displayed_comments_count++;
+                                        
                                         $name = !empty($comment['user_name']) ? htmlspecialchars($comment['user_name']) : 'User';
                                         $created_at = !empty($comment['created_at']) ? new DateTime($comment['created_at']) : null;
                                         $now = new DateTime();
@@ -278,9 +297,7 @@
                                         } else {
                                             $time_label = $daysAgo . ' days ago';
                                         }
-                                        $comment_text = !empty($comment['user_explanation'])
-                                            ? htmlspecialchars($comment['user_explanation'])
-                                            : 'No explanation provided.';
+                                        $comment_text = htmlspecialchars($comment['user_explanation']);
                                     ?>
                                     <?php
                                         $response_id = (int)$comment['id'];
@@ -313,6 +330,13 @@
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
+                                <?php if (!empty($question_id) && $total_loaded_comments >= 15): ?>
+                                    <div class="view-more-comments-wrapper" style="text-align: center; margin-top: 20px;">
+                                        <button type="button" class="view-more-btn" id="viewMoreCommentsBtn" data-question-id="<?php echo $question_id; ?>" data-offset="15">
+                                            View More
+                                        </button>
+                                    </div>
+                                <?php endif; ?>
                             <?php else: ?>
                                 <p>No comments yet for this question. Be the first to answer!</p>
                             <?php endif; ?>

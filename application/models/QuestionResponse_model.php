@@ -66,9 +66,10 @@ class QuestionResponse_model extends CI_Model
      *
      * @param int $question_id
      * @param int $limit
+     * @param int $offset
      * @return array
      */
-    public function get_recent_for_question($question_id, $limit = 4)
+    public function get_recent_for_question($question_id, $limit = 4, $offset = 0)
     {
         if (empty($question_id)) {
             return array();
@@ -77,7 +78,7 @@ class QuestionResponse_model extends CI_Model
         $this->db->from('question_responses');
         $this->db->where('question_id', (int)$question_id);
         $this->db->order_by('created_at', 'DESC');
-        $this->db->limit((int)$limit);
+        $this->db->limit((int)$limit, (int)$offset);
 
         $query = $this->db->get();
         return $query->result_array();

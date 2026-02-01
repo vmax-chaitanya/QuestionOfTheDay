@@ -24,7 +24,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 |
 */
 // $config['base_url'] = 'https://www.gobrainwiz.in/question_of_the_day/';
-$config['base_url'] = 'http://localhost/binwiz_qod';
+$config['base_url'] = 'http://localhost/QuestionOfTheDay';
 
 /*
 |--------------------------------------------------------------------------

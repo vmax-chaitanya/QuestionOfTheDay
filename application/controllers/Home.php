@@ -50,6 +50,10 @@ class Home extends CI_Controller
         $user_response_today = null;
         $recent_comments = array();
         if (!empty($today_question)) {
+            // Attach answers_count for main question
+            $main_counts = $this->QuestionResponse_model->get_counts_for_questions(array((int)$today_question['id']));
+            $today_question['answers_count'] = isset($main_counts[(int)$today_question['id']]) ? (int)$main_counts[(int)$today_question['id']] : 0;
+
             $has_attempted_today = $this->QuestionResponse_model->has_submitted(
                 (int)$today_question['id'],
                 $this->browser_id
@@ -65,7 +69,8 @@ class Home extends CI_Controller
             // Latest comments for this question (for Recent Comments section)
             $recent_comments = $this->QuestionResponse_model->get_recent_for_question(
                 (int)$today_question['id'],
-                4
+                15,
+                0
             );
             // Attach like/dislike counts and user votes
             $recent_comments = $this->attach_like_dislike_data($recent_comments);
@@ -122,6 +127,10 @@ class Home extends CI_Controller
             return;
         }
 
+        // Attach answers_count for the displayed question
+        $main_counts = $this->QuestionResponse_model->get_counts_for_questions(array((int)$question['id']));
+        $question['answers_count'] = isset($main_counts[(int)$question['id']]) ? (int)$main_counts[(int)$question['id']] : 0;
+
         // Pagination settings for previous questions (reuse same sidebar)
         $per_page = 4;
         $page = (int)$this->input->get('page');
@@ -162,7 +171,8 @@ class Home extends CI_Controller
         // Latest comments for this question
         $recent_comments = $this->QuestionResponse_model->get_recent_for_question(
             (int)$question['id'],
-            4
+            15,
+            0
         );
         // Attach like/dislike counts and user votes
         $recent_comments = $this->attach_like_dislike_data($recent_comments);
@@ -334,6 +344,61 @@ class Home extends CI_Controller
         );
 
         $this->output->set_output(json_encode($result));
+    }
+
+    /**
+     * AJAX endpoint to load more comments.
+     */
+    public function load_more_comments()
+    {
+        // Set JSON header
+        $this->output->set_content_type('application/json');
+
+        $question_id = (int)$this->input->post('question_id');
+        $offset = (int)$this->input->post('offset');
+        $limit = 15; // Load 15 more comments
+
+        if ($question_id <= 0) {
+            $this->output->set_output(json_encode(array(
+                'success' => false,
+                'message' => 'Invalid question ID'
+            )));
+            return;
+        }
+
+        // Verify question exists
+        $question = $this->QuestionOfTheDay_model->get_by_id($question_id);
+        if (empty($question) || $question['status'] !== 'active') {
+            $this->output->set_output(json_encode(array(
+                'success' => false,
+                'message' => 'Question not found'
+            )));
+            return;
+        }
+
+        // Get comments with offset
+        $comments = $this->QuestionResponse_model->get_recent_for_question(
+            $question_id,
+            $limit,
+            $offset
+        );
+
+        // Attach like/dislike counts and user votes
+        $comments = $this->attach_like_dislike_data($comments);
+
+        // Filter out comments without explanations
+        $filtered_comments = array();
+        foreach ($comments as $comment) {
+            if (!empty($comment['user_explanation']) && trim($comment['user_explanation']) !== '') {
+                $filtered_comments[] = $comment;
+            }
+        }
+
+        $this->output->set_output(json_encode(array(
+            'success' => true,
+            'comments' => $filtered_comments,
+            'has_more' => count($filtered_comments) === $limit
+        )));
     }
 }
 

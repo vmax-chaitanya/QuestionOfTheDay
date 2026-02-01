@@ -393,6 +393,247 @@
         }
     });
 
+    // Load More Comments functionality
+    const viewMoreBtn = document.getElementById("viewMoreCommentsBtn");
+    if (viewMoreBtn) {
+        viewMoreBtn.addEventListener("click", function() {
+            const btn = this;
+            const questionId = btn.getAttribute("data-question-id");
+            const currentOffset = parseInt(btn.getAttribute("data-offset")) || 15;
+            
+            // Disable button during request
+            btn.disabled = true;
+            btn.textContent = "Loading...";
+            
+            // Make AJAX call
+            fetch("<?php echo base_url('load-more-comments'); ?>", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: new URLSearchParams({
+                    question_id: questionId,
+                    offset: currentOffset
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.textContent = "View More";
+                
+                if (data.success && data.comments && data.comments.length > 0) {
+                    // Get the comments list container
+                    const commentsList = document.querySelector(".comments-list");
+                    const viewMoreWrapper = document.querySelector(".view-more-comments-wrapper");
+                    
+                    // Render new comments
+                    data.comments.forEach(function(comment) {
+                        const commentCard = createCommentCard(comment);
+                        if (commentsList && viewMoreWrapper) {
+                            commentsList.insertBefore(commentCard, viewMoreWrapper);
+                        }
+                    });
+                    
+                    // Update offset for next load (always increment by 15, not by returned count)
+                    const newOffset = currentOffset + 15;
+                    btn.setAttribute("data-offset", newOffset);
+                    
+                    // Hide button if no more comments
+                    if (!data.has_more) {
+                        if (viewMoreWrapper) {
+                            viewMoreWrapper.style.display = "none";
+                        }
+                    }
+                    
+                    // Re-initialize like/dislike handlers for new comments
+                    initializeLikeDislikeHandlers();
+                } else {
+                    // No more comments or error
+                    if (viewMoreWrapper) {
+                        viewMoreWrapper.style.display = "none";
+                    }
+                }
+            })
+            .catch(error => {
+                btn.disabled = false;
+                btn.textContent = "View More";
+                console.error("Error:", error);
+                alert("An error occurred while loading comments. Please try again.");
+            });
+        });
+    }
+    
+    // Function to create a comment card element
+    function createCommentCard(comment) {
+        const card = document.createElement("div");
+        card.className = "comment-card";
+        card.setAttribute("data-comment-id", comment.id);
+        
+        // Calculate time label
+        const createdDate = new Date(comment.created_at);
+        const now = new Date();
+        const daysAgo = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
+        let timeLabel = "Today";
+        if (daysAgo === 1) {
+            timeLabel = "1 day ago";
+        } else if (daysAgo > 1) {
+            timeLabel = daysAgo + " days ago";
+        }
+        
+        const name = comment.user_name || "User";
+        const commentText = comment.user_explanation || "";
+        const likesCount = comment.likes_count || 0;
+        const dislikesCount = comment.dislikes_count || 0;
+        const likeActive = (comment.user_vote === "like") ? "active" : "";
+        const dislikeActive = (comment.user_vote === "dislike") ? "active" : "";
+        
+        card.innerHTML = `
+            <div class="comment-header">
+                <img src="<?php echo base_url('assets/home/images/user1.jpg'); ?>" alt="User" class="avatar" />
+                <div>
+                    <h4 class="username">${escapeHtml(name)}</h4>
+                    <p class="time">${timeLabel}</p>
+                </div>
+            </div>
+            <p class="comment-text">${escapeHtml(commentText).replace(/\n/g, '<br>')}</p>
+            <div class="comment-actions">
+                <button class="like-btn ${likeActive}" type="button" data-response-id="${comment.id}" data-action="like">
+                    <i class="fa-solid fa-thumbs-up"></i>
+                    <span>${likesCount}</span>
+                </button>
+                <button class="dislike-btn ${dislikeActive}" type="button" data-response-id="${comment.id}" data-action="dislike">
+                    <i class="fa-solid fa-thumbs-down"></i>
+                    <span>${dislikesCount}</span>
+                </button>
+            </div>
+        `;
+        
+        return card;
+    }
+    
+    // Function to escape HTML
+    function escapeHtml(text) {
+        const div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    // Function to initialize like/dislike handlers for comment cards
+    function initializeLikeDislikeHandlers() {
+        document.querySelectorAll(".comment-card").forEach((card) => {
+            // Skip if already initialized
+            if (card.hasAttribute("data-handlers-initialized")) {
+                return;
+            }
+            card.setAttribute("data-handlers-initialized", "true");
+            
+            const likeBtn = card.querySelector(".like-btn");
+            const dislikeBtn = card.querySelector(".dislike-btn");
+            
+            if (!likeBtn || !dislikeBtn) {
+                return;
+            }
+            
+            const likeCount = likeBtn.querySelector("span");
+            const dislikeCount = dislikeBtn.querySelector("span");
+            const responseId = likeBtn.getAttribute("data-response-id");
+
+            // Handle like button click
+            if (likeBtn && likeCount && responseId) {
+                likeBtn.addEventListener("click", function() {
+                    const btn = this;
+                    btn.disabled = true;
+                    
+                    fetch("<?php echo base_url('toggle-comment-like'); ?>", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/x-www-form-urlencoded",
+                        },
+                        body: new URLSearchParams({
+                            response_id: responseId,
+                            action_type: "like"
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        btn.disabled = false;
+                        if (data.success) {
+                            if (likeCount) {
+                                likeCount.textContent = data.likes || 0;
+                            }
+                            if (dislikeCount) {
+                                dislikeCount.textContent = data.dislikes || 0;
+                            }
+                            
+                            if (data.user_action === "like") {
+                                btn.classList.add("active");
+                                if (dislikeBtn) {
+                                    dislikeBtn.classList.remove("active");
+                                }
+                            } else {
+                                btn.classList.remove("active");
+                            }
+                        } else {
+                            alert(data.message || "Failed to update like. Please try again.");
+                        }
+                    })
+                    .catch(error => {
+                        btn.disabled = false;
+                        console.error("Error:", error);
+                        alert("An error occurred. Please try again.");
+                    });
+                });
+            }
+
+            // Handle dislike button click
+            if (dislikeBtn && dislikeCount && responseId) {
+                dislikeBtn.addEventListener("click", function() {
+                    const btn = this;
+                    btn.disabled = true;
+                    
+                    fetch("<?php echo base_url('toggle-comment-like'); ?>", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/x-www-form-urlencoded",
+                        },
+                        body: new URLSearchParams({
+                            response_id: responseId,
+                            action_type: "dislike"
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        btn.disabled = false;
+                        if (data.success) {
+                            if (likeCount) {
+                                likeCount.textContent = data.likes || 0;
+                            }
+                            if (dislikeCount) {
+                                dislikeCount.textContent = data.dislikes || 0;
+                            }
+                            
+                            if (data.user_action === "dislike") {
+                                btn.classList.add("active");
+                                if (likeBtn) {
+                                    likeBtn.classList.remove("active");
+                                }
+                            } else {
+                                btn.classList.remove("active");
+                            }
+                        } else {
+                            alert(data.message || "Failed to update dislike. Please try again.");
+                        }
+                    })
+                    .catch(error => {
+                        btn.disabled = false;
+                        console.error("Error:", error);
+                        alert("An error occurred. Please try again.");
+                    });
+                });
+            }
+        });
+    }
+
     // Disable right-click and text selection
     document.addEventListener("contextmenu", (event) => event.preventDefault());
     document.addEventListener("selectstart", (event) => event.preventDefault());
